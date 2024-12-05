@@ -1,13 +1,16 @@
 let agents = [];
-let numAgents = 400;
-let infectionRadius = 10;
-let infectionDuration = 300; // Frames before recovery
+let numAgents = 700;
+let infectionRadius = 20;
+let infectionDuration = 300; // Frames before recovery plus poissonian deviation
 let mobility = 3;
+let lethality = 0.3;
+let lethalityPerFrame= 1- Math.pow(1 - lethality, 1 / infectionDuration); //probability to die while sick 
 let data = {
   healthy: [],
   infected: [],
   recovered: [],
   immune: [],
+  deceased:[]
 };
 let graphHeight = 100;
 
@@ -41,7 +44,7 @@ class Agent {
   constructor(x, y, state) {
     this.x = x;
     this.y = y;
-    this.state = state; // "healthy", "infected", "recovered", "immune"
+    this.state = state; // "healthy", "infected", "recovered", "immune", "deceased"
     this.infectionTimer = 0; // How long agent has been infected
   }
 
@@ -54,10 +57,16 @@ class Agent {
 
     if (this.state === "infected") {
       this.infectionTimer++;
+      if (random(0,1)<lethalityPerFrame){
+        this.state="deceased";
+      }
+
       // Recover after infectionDuration
-      if (this.infectionTimer > infectionDuration) {
+      if (this.infectionTimer > infectionDuration+random(0,Math.sqrt(infectionDuration))) {
         this.state = "recovered";
       }
+
+      
     }
 
     // Infection logic
@@ -79,6 +88,7 @@ class Agent {
     else if (this.state === "infected") fill(255, 0, 0); // Red
     else if (this.state === "recovered") fill(0, 0, 255); // Blue
     else if (this.state === "immune") fill(255, 255, 0); // Yellow
+    else if (this.state=== "deceased") fill(0,0,0);
     ellipse(this.x, this.y, 8, 8);
   }
 }
@@ -89,6 +99,7 @@ function updateData() {
     infected: 0,
     recovered: 0,
     immune: 0,
+    deceased: 0,
   };
   
   for (let agent of agents) {
@@ -99,10 +110,12 @@ function updateData() {
   data.infected.push(counts.infected);
   data.recovered.push(counts.recovered);
   data.immune.push(counts.immune);
+  data.deceased.push(counts.deceased)
 
   if(counts.infected===0){
     noLoop();
   }
+  
 }
 
 function drawGraph() {
@@ -121,7 +134,8 @@ function drawGraph() {
     healthy: color(0, 255, 0),
     infected: color(255, 0, 0),
     recovered: color(0, 0, 255),
-     immune: color(255, 255, 0,1),
+    immune: color(255, 255, 0,1),
+    deceased: color(0,0,0)
   };
 
   let totalSteps = data.healthy.length;
