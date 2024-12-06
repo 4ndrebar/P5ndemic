@@ -1,10 +1,13 @@
 let agents = [];
-let numAgents = 700;
-let infectionRadius = 10;
+let numAgents = 600;
+let infectionRadius = 5;
 let averageInfectionDuration = 300; // Frames before recovery plus Poissonian deviation
-let mobility = 3;
-let lethality = 0.1;
-let lethalityPerFrame = 1 - Math.pow(1 - lethality, 1 / averageInfectionDuration); // Probability to die while sick
+let slider;
+let altro;
+let initialInfectedPercentage = .1;
+let max_lethality = 0.9;
+let max_v=5;
+let lethalityPerFrame ;// Probability to die while sick
 let data = {
   healthy: [],
   infected: [],
@@ -18,7 +21,12 @@ let restartButton;
 function setup() {
   createCanvas(800, 600);
   initializeSimulation();
-
+  slider = createSlider(0,max_v,.5,.01);
+  altro = createSlider(0,max_lethality,0.5,0.01);
+  slider.position(80,10);
+  altro.position(80,40);
+  slider.size(100);
+  altro.size(100);
   // Create the restart button (hidden initially)
   restartButton = createButton("Restart Simulation");
   restartButton.position(width / 2 - 50, height / 2);
@@ -38,9 +46,19 @@ function initializeSimulation() {
 
   // Initialize agents
   for (let i = 0; i < numAgents; i++) {
-    let state = random() < 0.02 ? "infected" : "healthy"; // 2% chance of starting infected
+    let state = random() < initialInfectedPercentage ? "infected" : "healthy"; // 2% chance of starting infected
     agents.push(new Agent(random(width), random(height), state));
   }
+}
+
+function displaySlidersLabels(){
+  fill(255); // Set text color to black
+  stroke(0);
+  strokeWeight(4);
+  textSize(14);
+  textStyle(BOLD)
+  text('Velocity:', 10, slider.y +15);
+  text('Lethality:', 10, altro.y + 15);
 }
 
 function draw() {
@@ -51,6 +69,9 @@ function draw() {
     agent.update();
     agent.display();
   }
+
+  displaySlidersLabels()
+
 
   // Update population data
   updateData();
@@ -68,6 +89,8 @@ function draw() {
 // Class for each agent
 class Agent {
   constructor(x, y, state) {
+    this.vx = random(-1,1);
+    this.vy =random(-1,1);
     this.x = x;
     this.y = y;
     this.state = state; // "healthy", "infected", "recovered", "immune", "deceased"
@@ -76,10 +99,17 @@ class Agent {
 
   update() {
     if (this.state === "deceased") return; // Deceased agents don't move or infect others
-
-    // Random movement
-    this.x += random(-mobility, mobility);
-    this.y += random(-mobility, mobility);
+    if (this.x===0 ||this.x===width){
+      this.vx*=-1;
+    }
+    if (this.y===0 ||this.y===height){
+      this.vy*=-1;
+    }
+    let mobility = slider.value();
+    let lethality = altro.value() 
+    let  lethalityPerFrame= 1 - Math.pow(1 - lethality, 1 / averageInfectionDuration)
+    this.x += mobility*this.vx+random(-.5, .5);
+    this.y += mobility*this.vy+random(-.5, .5);
     this.x = constrain(this.x, 0, width);
     this.y = constrain(this.y, 0, height);
 
@@ -147,6 +177,7 @@ function drawGraph() {
   // Draw graph background
   fill(255);
   stroke(0);
+  strokeWeight(2)
   rect(graphX, graphY, width - 100, graphHeight);
 
   // Plot data
